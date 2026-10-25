@@ -1,0 +1,7 @@
+# Day 8 Reflection
+
+The most difficult concept in this course was system design, especially understanding how different components work together when an application experiences high traffic. At first, concepts such as caching, database transactions, load balancing, and API design seemed complicated. I overcame this challenge by breaking the problems into smaller parts, practising with my QuickNotes project, and learning how each component solves a specific problem. Building and testing the application helped me connect the theoretical concepts to practical examples.
+
+Based on the feedback I received on my QuickNotes capstone, I would improve the completeness and clarity of my system architecture documentation. The feedback highlighted the need to finish explaining the load balancer, describe the remaining components, document the complete request flow, and discuss system trade-offs. I would also improve my API implementation by ensuring that successful create operations display the identifier returned by the server. These improvements would make my project easier to understand, more reliable, and better prepared for future development.
+
+Next, I want to learn more about backend development, database transactions, and application security. I also plan to explore cloud deployment, automated testing, and monitoring so that I can build applications that remain reliable as the number of users grows. By continuing to practise with real projects and improving my documentation, I hope to develop stronger software engineering and system design skills.
