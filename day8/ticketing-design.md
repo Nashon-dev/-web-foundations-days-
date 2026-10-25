@@ -99,12 +99,14 @@ TicketHub uses a REST API over HTTPS. The API returns JSON responses and require
 
 Example JSON request:
 
-json
+Example JSON request:
+
+```json
 {
   "eventId": 101,
   "seatIds": [501, 502]
 }
-
+```
 
 The server checks that the event is on sale and that both seats are available. It then attempts to reserve them atomically in a database transaction. If either seat cannot be held, the entire request fails rather than leaving the user with only part of the requested selection.
 
@@ -277,7 +279,7 @@ The waiting room and rate limits reduce excessive demand, but they are not the m
 
 The following SQL illustrates how TicketHub safely holds one seat. The application must execute these statements within a database transaction.
 
-sql
+```sql
 BEGIN;
 
 SELECT seat_id, status, hold_expires_at
@@ -307,6 +309,7 @@ WHERE seat_id = 501
 -- If no row was updated, roll back and return HTTP 409 Conflict.
 
 COMMIT;
+```
 
 The application must verify the seat's current state after obtaining the row lock and confirm that exactly one row was updated. If the seat is already held by another customer or has been sold, the transaction must not create a new hold.
 
@@ -317,6 +320,8 @@ For multiple seats, TicketHub should lock the requested seat rows in a consisten
 The final purchase operation must also verify the hold owner, hold expiration, and payment outcome before marking seats as sold. A database constraint and transaction protect inventory correctness even if requests reach different application servers.
 
 This example is illustrative: production code must handle missing seats, transaction errors, lock timeouts, and payment/hold expiration races explicitly.
+
+**Transaction isolation level:** This example uses PostgreSQL's default READ COMMITTED isolation level together with row-level locking (`SELECT ... FOR UPDATE`), conditional updates, and database constraints. When two customers attempt to hold the same seat, the row lock makes their conflicting operations wait for one another. The second transaction then checks the latest committed seat state and cannot claim a seat that is already held by another customer or sold. The application must verify that exactly one row was updated and roll back if the seat is unavailable. A unique constraint on the event and seat number prevents duplicate seat records, while transaction logic ensures that competing requests cannot successfully allocate the same seat twice.
 
 ## 6. System Architecture
 
