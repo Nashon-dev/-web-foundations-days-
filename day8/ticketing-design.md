@@ -97,7 +97,6 @@ TicketHub uses a REST API over HTTPS. The API returns JSON responses and require
 
 `POST /api/seat-holds`
 
-Example JSON request:
 
 Example JSON request:
 
