@@ -273,6 +273,50 @@ If payment processing is delayed, the system must coordinate hold expiration wit
 Row-level locks serialize competing updates to the same seats. Transactions ensure that a group of seats is held or released as one operation. Unique constraints provide an additional database-level safeguard against duplicate seat assignments.
 
 The waiting room and rate limits reduce excessive demand, but they are not the mechanisms that guarantee correctness. The database transaction and constraints are the final protection against double-booking.
+### 5.6 Example PostgreSQL Transaction for Holding a Seat
+
+The following SQL illustrates how TicketHub safely holds one seat. The application must execute these statements within a database transaction.
+
+sql
+BEGIN;
+
+SELECT seat_id, status, hold_expires_at
+FROM Seats
+WHERE seat_id = 501
+  AND event_id = 101
+FOR UPDATE;
+
+-- After acquiring the row lock, the application checks
+-- whether the seat is available or its previous hold expired.
+
+UPDATE Seats
+SET status = 'held',
+    held_by_user_id = 25,
+    hold_expires_at = CURRENT_TIMESTAMP + INTERVAL '5 minutes'
+WHERE seat_id = 501
+  AND event_id = 101
+  AND (
+      status = 'available'
+      OR (
+          status = 'held'
+          AND hold_expires_at <= CURRENT_TIMESTAMP
+      )
+  );
+
+-- The application must verify that exactly one row was updated.
+-- If no row was updated, roll back and return HTTP 409 Conflict.
+
+COMMIT;
+
+The application must verify the seat's current state after obtaining the row lock and confirm that exactly one row was updated. If the seat is already held by another customer or has been sold, the transaction must not create a new hold.
+
+When Alice and Bob request seat 501 concurrently, the database serializes their conflicting row updates. If Alice successfully holds the seat first, Bob's transaction sees the updated state after obtaining the lock and cannot claim the same seat. The conditional update provides an additional safeguard.
+
+For multiple seats, TicketHub should lock the requested seat rows in a consistent order and verify that every requested seat can be held. If any seat is unavailable, the entire transaction must roll back so the customer does not receive a partial hold.
+
+The final purchase operation must also verify the hold owner, hold expiration, and payment outcome before marking seats as sold. A database constraint and transaction protect inventory correctness even if requests reach different application servers.
+
+This example is illustrative: production code must handle missing seats, transaction errors, lock timeouts, and payment/hold expiration races explicitly.
 
 ## 6. System Architecture
 
